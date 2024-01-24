@@ -13,6 +13,15 @@ TEX_SOURCE_DIR = BASE_DIR / 'source'
 
 
 def build(src_dir, out_dir):
+    """Compiles the .tex files in the source directory to HTML files in the build directory.
+
+    :param src_dir: The source directory containing the .tex files.
+    :type src_dir: os.PathLike
+    :param out_dir: The directory to output the HTML files into.
+    :type out_dir: os.PathLike
+    :returns: None
+    """
+    src_dir, out_dir = pathlib.Path(src_dir), pathlib.Path(out_dir)
     if pathlib.Path(out_dir).exists():
         # Clean out existing folder
         shutil.rmtree(out_dir)
@@ -48,6 +57,13 @@ def _check_valid_slug(test_slug: str):
 
 
 class StaticTeXRequestHandler(SimpleHTTPRequestHandler):
+    """Handles requests for the built-in server.
+
+    Each outputted HTML file in the build directory will be accessible through a path representing the filename stem.
+    For example, the file "index.html" could be accessed as such: 'localhost:8000/index'.
+
+    Will return an error if the slug is invalid or if no file with that name can be found.
+    """
 
     def do_GET(self):
 
@@ -75,8 +91,9 @@ class StaticTeXRequestHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(bytes("Page not found.", "utf-8"))
 
 
-def runserver(address="", port=8000):
-    server_address = (address, port)
+def runserver(port=8000):
+    """Starts a server that listens on the specified port."""
+    server_address = ("", port)
     try:
         os.chdir(TEX_BUILD_DIR)
     except FileNotFoundError as e:
@@ -92,9 +109,10 @@ if __name__ == "__main__":
         description="Build and serve static HTML pages from TeX files."
     )
     parser.add_argument("action", choices=["build", "runserver"])
+    parser.add_argument("-p", "--port", type=int, default=8000)
     args = parser.parse_args()
 
     if args.action == "build":
         build(TEX_SOURCE_DIR, TEX_BUILD_DIR)
     elif args.action == "runserver":
-        runserver()
+        runserver(port=args.port)
