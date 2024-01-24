@@ -4,5 +4,6 @@ __pycache__/
 
 .env
 
-tex_src/*
-html_out/
+source/*
+# Default build folder
+build/
