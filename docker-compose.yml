@@ -1,7 +1,6 @@
 services:
   web:
     build: .
-    command: bash -c "python -m static_tex build && python -m static_tex runserver"
     ports:
       - "8000:8000"
     volumes:
