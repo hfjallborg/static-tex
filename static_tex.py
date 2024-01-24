@@ -1,8 +1,9 @@
+import argparse
 import os
 import pathlib
-import subprocess
-import argparse
 import shutil
+import string
+import subprocess
 import tempfile
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
@@ -37,13 +38,50 @@ def build(src_dir, out_dir):
         pathlib.Path(src_dir / f"{src_file.stem}.paux").unlink()
 
 
+def _check_valid_slug(test_slug: str):
+    # Checks if the inputted slug is valid (includes only allowed characters)
+    allowed = set(string.ascii_lowercase + string.digits + "-")
+    if set(test_slug).issubset(allowed):
+        return True
+    else:
+        return False
+
+
+class StaticTeXRequestHandler(SimpleHTTPRequestHandler):
+
+    def do_GET(self):
+
+        print(self.path)
+        url = self.path
+        # Ignore trailing slash
+        if url[-1] == "/":
+            url = url[:-1]
+
+        # Find slug
+        slug = url.split('/')[-1]
+        if not _check_valid_slug(slug):
+            # Return bad request response
+            self.send_response(400, f"Invalid slug: {slug}")
+            self.end_headers()
+            self.wfile.write(bytes("Invalid slug", "utf-8"))
+            return
+
+        else:
+            if pathlib.Path(TEX_BUILD_DIR / f"{slug}.html").exists():
+                self.path = f"/{slug}.html"
+                return SimpleHTTPRequestHandler.do_GET(self)
+            else:
+                self.send_response(404, f"Page not found.")
+                self.wfile.write(bytes("Page not found.", "utf-8"))
+
+
 def runserver(address="", port=8000):
     server_address = (address, port)
     try:
         os.chdir(TEX_BUILD_DIR)
     except FileNotFoundError as e:
         raise FileNotFoundError("Build directory does not exist:", e)
-    httpd = HTTPServer(server_address, SimpleHTTPRequestHandler)
+    httpd = HTTPServer(server_address, StaticTeXRequestHandler)
     httpd.serve_forever()
 
 
